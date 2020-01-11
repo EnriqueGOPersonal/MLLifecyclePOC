@@ -537,7 +537,6 @@ data["train"]["merged_train"].dtypes
 
 
 eda_df = data["train"]["merged_train"].reset_index(drop = True)
-
 cat_cols = []
 bool_cols = []
 num_cols = []
@@ -608,6 +607,7 @@ print("By grouping all companies with 20 or more employees we are now left with:
 
 companies_to_replace = more_20_emp_companies.company.unique()
 eda_df.loc[eda_df.company.isin(companies_to_replace) == False, "company"] = "Not Relevant"
+#data["train"]["merged_train"].loc[eda_df.company.isin(companies_to_replace) == False, "company"] = "Not Relevant"
 print("Number of unique values in company column: \n" + str(len(eda_df.company.unique())))
 
 # These are the 60 company names plus the "Not Relevant" value.
@@ -753,12 +753,9 @@ x_train, y_train = sm.fit_sample(x_train, y_train)
 
 # In[ ]:
 
-
-lr_pipe = Pipeline([('lr', LogisticRegression())])
-
 parameters = {'C': [1.0, 1.1]}
 
-CV = GridSearchCV(lr_pipe, param_grid = parameters, scoring = 'recall', n_jobs= 1)
+CV = GridSearchCV( LogisticRegression(), param_grid = parameters, scoring = 'recall', n_jobs= 1)
 CV.fit(x_train, y_train)
 
 print('Best score and parameter combination = ')
@@ -779,12 +776,9 @@ gd_sr = GridSearchCV(estimator = lr_pip,
 
 # In[ ]:
 
-
-rf_pipe = Pipeline([('rf', RandomForest())])
-
 parameters = {'': []}
 
-CV = GridSearchCV(pipeline, parameters, scoring = 'recall', n_jobs= 1)
+CV = GridSearchCV(RandomForestClassifier(), parameters, scoring = 'recall', n_jobs= 1)
 CV.fit(x_train, y_train)   
 
 print('Best score and parameter combination = ')
