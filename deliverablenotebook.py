@@ -107,7 +107,7 @@
 
 # # Set working environment
 
-# In[1]:
+# In[2]:
 
 
 import pandas as pd
@@ -131,7 +131,7 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 # # Importing data
 
-# In[2]:
+# In[3]:
 
 
 data = {
@@ -156,7 +156,7 @@ data = {
 
 # ### 1 - **Checking datasets dimesions**
 
-# In[3]:
+# In[4]:
 
 
 [print('Dataset: ' + x + ' | Dataset dimension (rows, cols): ' + str(data['train'][x].shape)) for x in data['train'].keys()]
@@ -166,7 +166,7 @@ data = {
 
 # #### 1) Personal datatable
 
-# In[4]:
+# In[5]:
 
 
 data['train']['personal'].head()
@@ -179,7 +179,7 @@ data['train']['personal'].head()
 
 # #### 2) Job datatable
 
-# In[5]:
+# In[6]:
 
 
 data['train']['job'].head()
@@ -192,7 +192,7 @@ data['train']['job'].head()
 # #### 3) Bank datatable
 # - Notice that this is the table that contains variable to predict: **defaulted_loan**
 
-# In[6]:
+# In[7]:
 
 
 data['train']['bank_data'].head()
@@ -204,7 +204,7 @@ data['train']['bank_data'].head()
 
 # #### 4) Bank transactions datatable
 
-# In[7]:
+# In[8]:
 
 
 data['train']['transactional_data'].head()
@@ -217,7 +217,7 @@ data['train']['transactional_data'].head()
 # ### 3 - **Checking Data types**
 # 
 
-# In[8]:
+# In[9]:
 
 
 [print("Datatypes for -" + x + "- dataset are:\n\n" + f"{data['train'][x].dtypes}\n", end = "\n") for x in data['train'].keys()]
@@ -225,7 +225,7 @@ data['train']['transactional_data'].head()
 
 # ### 4 - **Checking Null Values**
 
-# In[9]:
+# In[10]:
 
 
 [print("Dataset -" + x + "- contains the following number of null values by feature: \n\n" + f"{data['train'][x].isnull().sum()}\n", end = "\n") for x in data['train'].keys()]
@@ -238,7 +238,7 @@ data['train']['transactional_data'].head()
 # 
 # This is done to define what kind of merging to do later on the datasets and expect certain behavior.
 
-# In[10]:
+# In[11]:
 
 
 for dataset in data["train"]:
@@ -267,13 +267,13 @@ for dataset in data["train"]:
 # - **defaulted_loan**: if True, it means that the client defaulted the loan. If False, client paid the loan.
 # - **Our interest is to predict if a credit applicant (client_id) will default the loan.**
 
-# In[11]:
+# In[12]:
 
 
 data['train']['bank_data']['defaulted_loan'].value_counts()
 
 
-# In[12]:
+# In[13]:
 
 
 100 * np.round(data['train']['bank_data']['defaulted_loan'].value_counts() / data['train']['bank_data'].shape[0], 2)
@@ -284,13 +284,13 @@ data['train']['bank_data']['defaulted_loan'].value_counts()
 
 # ## Test set exploration
 
-# In[13]:
+# In[14]:
 
 
 [print('Dataset: ' + x + ' | Dataset dimension (rows, cols): ' + str(data['test'][x].shape)) for x in data['test'].keys()]
 
 
-# In[14]:
+# In[15]:
 
 
 [print("Dataset -" + x + "- contains the following number of null values by feature: \n\n" + f"{data['test'][x].isnull().sum()}\n", end = "\n") for x in data['test'].keys()]
@@ -323,7 +323,7 @@ data['train']['bank_data']['defaulted_loan'].value_counts()
 # * email_domain 
 # * credit_card_number
 
-# In[15]:
+# In[16]:
 
 
 columns_to_drop = ["car_licence_plate", "phone_number", "email_domain", "name", "address", 
@@ -349,7 +349,7 @@ for dataset in data["test"]:
 # * last_credit_card_application_date (from bank_data dataset)
 # * date (from transactional_data dataset)
 
-# In[16]:
+# In[17]:
 
 
 for dataset in ["train", "test"]:
@@ -361,14 +361,14 @@ for dataset in ["train", "test"]:
 
 # Showing data successful type transformation:
 
-# In[17]:
+# In[18]:
 
 
 data["train"]["bank_data"][["credit_card_expire", "first_credit_card_application_date", 
                             "last_credit_card_application_date"]].dtypes
 
 
-# In[18]:
+# In[19]:
 
 
 data["train"]["transactional_data"][["date"]].dtypes
@@ -376,7 +376,7 @@ data["train"]["transactional_data"][["date"]].dtypes
 
 # ## Generating *transactional_data* dataset grouped by _client_id_
 
-# In[19]:
+# In[20]:
 
 
 for dataset in ["train", "test"]:
@@ -407,13 +407,13 @@ print(data[dataset]["transactional_data_gr"].columns.values)
 # 
 # Showing the resulting grouped dataset:
 
-# In[20]:
+# In[21]:
 
 
 data["train"]["transactional_data_gr"].head()
 
 
-# In[21]:
+# In[22]:
 
 
 data["train"]["transactional_data_gr"].dtypes
@@ -421,7 +421,7 @@ data["train"]["transactional_data_gr"].dtypes
 
 # ## Merging datasets into single train and test dataframes
 
-# In[22]:
+# In[23]:
 
 
 for d_set in ["train", "test"]:    
@@ -434,7 +434,7 @@ for d_set in ["train", "test"]:
 print("The final " + str(len(data["train"]["merged_train"].columns)) + " trainset columns are: \n\n " +   str(data["train"]["merged_train"].columns))
 
 
-# In[23]:
+# In[24]:
 
 
 data["train"]["merged_train"].head()
@@ -456,7 +456,7 @@ data["train"]["merged_train"].head()
 # * cc_expire_month : Month of credit card expire date (str).
 # * cc_expire_year : Year of credit card expire date (str).
 
-# In[24]:
+# In[ ]:
 
 
 def feat_eng(df):
@@ -481,6 +481,8 @@ for d_set in ["train", "test"]:
 
 # And droping the following (not useful anymore) columns:
 # 
+# * first_transaction
+# * last_transaction
 # * withdrawal_date_min
 # * withdrawal_date_max
 # * deposit_date_min
@@ -489,10 +491,12 @@ for d_set in ["train", "test"]:
 # * last_credit_card_application_date
 # * creditcard_expire
 
-# In[25]:
+# In[ ]:
 
 
-columns_to_drop = ["withdrawal_date_min", 
+columns_to_drop = ["first_transaction",
+                   "last_transaction", 
+                   "withdrawal_date_min", 
 "withdrawal_date_max",
 "deposit_date_min",
 "first_credit_card_application_date",
@@ -507,7 +511,7 @@ data["test"]["merged_test"] = data["test"]["merged_test"].drop(columns_to_drop, 
 
 # We obtain the following resulting merged dataset:
 
-# In[26]:
+# In[ ]:
 
 
 data["train"]["merged_train"].head()
@@ -515,7 +519,7 @@ data["train"]["merged_train"].head()
 
 # With column types:
 
-# In[27]:
+# In[ ]:
 
 
 data["train"]["merged_train"].dtypes
@@ -527,21 +531,25 @@ data["train"]["merged_train"].dtypes
 # 
 # To generate better graphs, lets divide features into data into categorical, boolean and numerical data.
 
-# In[65]:
+# In[ ]:
 
 
 eda_df = data["train"]["merged_train"].reset_index(drop = True)
+
 cat_cols = []
 bool_cols = []
 num_cols = []
+date_cols = []
 
-for column in eda_df.columns[eda_df.columns != "client_id"]:
-    if data["train"]["merged_train"][column].dtypes in ["object"]:
-        cat_cols.append(column)
-    elif data["train"]["merged_train"][column].dtypes in ["bool"]:
-        bool_cols.append(column)
+for x in data["train"]["merged_train"].columns:
+    if data["train"]["merged_train"][x].dtypes in ["object"]:
+        cat_cols.append(x)
+    elif data["train"]["merged_train"][x].dtypes in ["bool"]:
+        bool_cols.append(x)
+    elif data["train"]["merged_train"][x].dtypes in ["int64", "float64"]:
+        num_cols.append(x)
     else:
-        num_cols.append(column)
+        date_cols.append(x)
 
 
 # ## Exploring categorical data
@@ -733,15 +741,6 @@ train
 
 # ## Defining data wrangling pipeline steps
 
-# In[ ]:
-
-
-onehot_encoder = OneHotEncoder(handle_unknown='ignore', drop = True)
-
-onehot_encoded = onehot_encoder.fit_transform(integer_encoded)
-print(onehot_encoded)
-
-
 # ### 1) Null values Imputing
 # 
 # Theo need to do imputing as the trainset and testset do not contain missing values 
@@ -751,9 +750,11 @@ print(onehot_encoded)
 # In[ ]:
 
 
-# binary encode
-onehot = OneHotEncoder(handle_unknown='ignore', drop = True)
-data_wr_pipe = Pipeline([('one_hot', onehot)])
+categoric_pipe = ColumnTransformer([
+                                    ("ohe", OneHotEncoder(handle_unknown='ignore', drop = True), cat_cols)],
+                                   remainder = "passthrough")
+
+data_wr_pipe = Pipeline([('one_hot', categoric_pipe)])
 
 
 # ## Fitting pipelines to the dataset
