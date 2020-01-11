@@ -112,9 +112,13 @@
 
 import pandas as pd
 import numpy as np
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.utils import shuffle, safe_indexing
+from sklearn.utils import shuffle
+from sklearn.model_selection import train_test_split
+from imblearn.oversampling import SMOTE
 from sklearn.datasets import make_classification
 from sklearn.pipeline import Pipeline
 import matplotlib.pyplot as plt
@@ -671,10 +675,6 @@ data["train"]["merged_train"].dtypes
 # ### 2) Encoding categorical columns
 
 # In[ ]:
-
-
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 #Separating categorical columns and numeric columns
 bool_columns = []
 categoric_columns = []
@@ -718,13 +718,12 @@ x = categoric_pipe.fit_transform(data["train"]["merged_train"])
 
 
 # Shuffle train set
-from sklearn.model_selection import train_test_split
 x, y = shuffle(data["train"]["merged_train"].drop(["defaulted_loan"], axis = 1), data["train"]["merged_train"]["defaulted_loan"])
 # Assign 80% data to train set 20% data to dev set
 x_train, x_dev, y_train, y_dev = train_test_split(x,
                                                   y,
                                                   test_size = 0.2)
-from imblearn.oversampling import SMOTE
+
 
 
 # ## Fitting pipelines to the dataset
