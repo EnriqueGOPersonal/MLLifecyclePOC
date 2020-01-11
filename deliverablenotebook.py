@@ -718,12 +718,13 @@ sns.heatmap(corr,
 
 
 x, y = shuffle(data["train"]["merged_train"].drop(["defaulted_loan"], axis = 1), data["train"]["merged_train"]["defaulted_loan"])
-
+data["train"]["merged_train"].drop("client_id")
+data["train"]["merged_train"] =data["train"]["merged_train"].drop(["client_id"], axis = 1)
 x_train, x_dev, y_train, y_dev = train_test_split(x,
                                                   y,
                                                   test_size = 0.2)
 categoric_trans = ColumnTransformer([("ohe", OneHotEncoder(handle_unknown='ignore'), cat_cols)],
-                                   remainder = "passthrough")
+                                   remainder = "passthrough", sparse_threshold = 0)
 
 ohe = categoric_trans.fit(x_train.append(x_dev))
 x_train = ohe.transform(x_train)
