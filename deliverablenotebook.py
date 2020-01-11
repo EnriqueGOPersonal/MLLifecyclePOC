@@ -120,6 +120,8 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 sns.set(style="ticks")
 import io
 import matplotlib as plt
@@ -127,7 +129,7 @@ import matplotlib as plt
 # !pip install eli5
 import eli5
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-
+from imblearn.over_sampling import SMOTE
 
 # # Importing data
 
@@ -708,36 +710,28 @@ sns.heatmap(corr,
 # 
 # ## Defining train and dev sets
 # 
-# It is necessary to train the model my measuring it's performance on not seen data (usually called dev set). 
+# It is necessary to train the model my measuring it's performance on not seen data (usually called dev set).
 # We will assign 80% of the original train set data to our newly defined train set and the rest of 20% data to the dev set.
 
 # In[ ]:
-
-
 # Shuffle train set
-X = shuffle(X)
+from sklearn.model_selection import train_test_split
 
+
+categoric_trans = ColumnTransformer([("ohe", OneHotEncoder(handle_unknown='ignore'), cat_cols+bool_cols)],
+                                   remainder = "passthrough")
+
+encoded_data = categoric_trans.fit_transform(data["train"]["merged_train"])
+pd.get_dummies(data["train"]["merged_train"]()
+x, y = shuffle(encoded_data.drop(["defaulted_loan"], axis = 1), encoded_data["defaulted_loan"])
+
+x_train, x_dev, y_train, y_dev = train_test_split(x,
+                                                  y,
+                                                  test_size = 0.2)
 # Assign 80% data to train set 20% data to dev set
-train, dev = train_test_split(X, test_size=0.2)
 
-
-# ## Oversampling the trainset
-# 
 # We can notice that our dataset's label to predict has imbalanced data because only a small fraction of observations are actually positives (the same is true if only a small fraction of observations were negatives).Recently, oversampling the minority class observations has become a common approach to improve the quality of predictive modeling. By oversampling, models are sometimes better able to learn patterns that differentiate classes. [2]
-
 # In[ ]:
-
-
-train
-
-
-# Now our trainset has a more balanced percentage of negative and positive observations.
-
-# In[ ]:
-
-
-#Grafica de observaciones?
-
 
 # ## Defining data wrangling pipeline steps
 
@@ -750,11 +744,12 @@ train
 # In[ ]:
 
 
-categoric_pipe = ColumnTransformer([
-                                    ("ohe", OneHotEncoder(handle_unknown='ignore', drop = True), cat_cols)],
-                                   remainder = "passthrough")
 
-data_wr_pipe = Pipeline([('one_hot', categoric_pipe)])
+
+
+
+
+model_pipe = Pipeline([('categorical_trans', categoric_pipe)])
 
 
 # ## Fitting pipelines to the dataset
@@ -764,12 +759,12 @@ data_wr_pipe = Pipeline([('one_hot', categoric_pipe)])
 # In[ ]:
 
 
-lr_pipe = Pipeline([data_wr_pipe.steps + ('lr', LogisticRegression())])
+lr_pipe = Pipeline([model_pipe.steps + ('lr', LogisticRegression())])
 
 parameters = {'': []}
 
-CV = GridSearchCV(pipeline, parameters, scoring = 'recall', n_jobs= 1)
-CV.fit(x_train, y_train)   
+CV = GridSearchCV(lr_pipe, parameters, scoring = 'recall', n_jobs= 1)
+CV.fit(x_train, y_train)
 
 print('Best score and parameter combination = ')
 print(CV.best_score_)    
