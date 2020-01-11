@@ -112,6 +112,7 @@
 
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.utils import shuffle
@@ -121,7 +122,6 @@ from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 sns.set(style="ticks")
 import io
 import matplotlib as plt
@@ -715,19 +715,22 @@ sns.heatmap(corr,
 
 # In[ ]:
 # Shuffle train set
-from sklearn.model_selection import train_test_split
 
 
-categoric_trans = ColumnTransformer([("ohe", OneHotEncoder(handle_unknown='ignore'), cat_cols+bool_cols)],
-                                   remainder = "passthrough")
-
-encoded_data = categoric_trans.fit_transform(data["train"]["merged_train"])
-pd.get_dummies(data["train"]["merged_train"]()
-x, y = shuffle(encoded_data.drop(["defaulted_loan"], axis = 1), encoded_data["defaulted_loan"])
+x, y = shuffle(data["train"]["merged_train"].drop(["defaulted_loan"], axis = 1), data["train"]["merged_train"]["defaulted_loan"])
 
 x_train, x_dev, y_train, y_dev = train_test_split(x,
                                                   y,
                                                   test_size = 0.2)
+categoric_trans = ColumnTransformer([("ohe", OneHotEncoder(handle_unknown='ignore'), cat_cols)],
+                                   remainder = "passthrough")
+
+ohe = categoric_trans.fit(x_train.append(x_dev))
+x_train = ohe.transform(x_train)
+x_dev = ohe.transform(x_dev)
+
+sm = SMOTE()
+x_train, y_train = sm.fit_sample(x_train, y_train)
 # Assign 80% data to train set 20% data to dev set
 
 # We can notice that our dataset's label to predict has imbalanced data because only a small fraction of observations are actually positives (the same is true if only a small fraction of observations were negatives).Recently, oversampling the minority class observations has become a common approach to improve the quality of predictive modeling. By oversampling, models are sometimes better able to learn patterns that differentiate classes. [2]
@@ -744,14 +747,6 @@ x_train, x_dev, y_train, y_dev = train_test_split(x,
 # In[ ]:
 
 
-
-
-
-
-
-model_pipe = Pipeline([('categorical_trans', categoric_pipe)])
-
-
 # ## Fitting pipelines to the dataset
 
 # ### 1) Logistic Regression Model pipeline
@@ -759,22 +754,22 @@ model_pipe = Pipeline([('categorical_trans', categoric_pipe)])
 # In[ ]:
 
 
-lr_pipe = Pipeline([model_pipe.steps + ('lr', LogisticRegression())])
+lr_pipe = Pipeline([('lr', LogisticRegression())])
 
-parameters = {'': []}
+parameters = {'C': [1.0, 1.1]}
 
-CV = GridSearchCV(lr_pipe, parameters, scoring = 'recall', n_jobs= 1)
+CV = GridSearchCV(lr_pipe, param_grid = parameters, scoring = 'recall', n_jobs= 1)
 CV.fit(x_train, y_train)
 
 print('Best score and parameter combination = ')
-print(CV.best_score_)    
+print(CV.best_score_)
 print(CV.best_params_)
 
-y_pred = CV.predict(x_valid_cont)
-print('MAE on validation set: %s' % (round(MAE(y_valid, y_pred), 5)))
+y_pred = CV.predict(x_test)
+print('MAE on validation set: %s' % (round(MAE(y_test, y_pred), 5)))
 
-gd_sr = GridSearchCV(estimator = rf_pipe,
-                     param_grid=grid_param,
+gd_sr = GridSearchCV(estimator = lr_pip,
+                     param_grid=parameters,
                      scoring='accuracy',
                      cv=5,
                      n_jobs=-1)
@@ -785,22 +780,22 @@ gd_sr = GridSearchCV(estimator = rf_pipe,
 # In[ ]:
 
 
-rf_pipe = Pipeline([data_wr_pipe.steps + ('lr', RandomForest())])
+rf_pipe = Pipeline([('rf', RandomForest())])
 
 parameters = {'': []}
 
 CV = GridSearchCV(pipeline, parameters, scoring = 'recall', n_jobs= 1)
-CV.fit(x_train_cont, y_train)   
+CV.fit(x_train, y_train)   
 
 print('Best score and parameter combination = ')
 print(CV.best_score_)    
 print(CV.best_params_)
 
-y_pred = CV.predict(x_valid_cont)
-print('MAE on validation set: %s' % (round(MAE(y_valid, y_pred), 5)))
+y_pred = CV.predict(x_test)
+print('MAE on validation set: %s' % (round(MAE(y_test, y_pred), 5)))
 
 gd_sr = GridSearchCV(estimator = rf_pipe,
-                     param_grid=grid_param,
+                     param_grid=parameters,
                      scoring='accuracy',
                      cv=5,
                      n_jobs=-1)
@@ -811,6 +806,13 @@ gd_sr = GridSearchCV(estimator = rf_pipe,
 # In this section we further explore the instances in which the model made a wrong prediction to try to find patters, generate model improval propositions and measure the time investment / reward ratio of each to take a decision of the next step to perform.
 
 # # ELI5
+
+import eli5
+eli5.show_weights(lr_pipe["lr"])
+eli5.show_weights(rf_pipe["rf"])
+eli5.show_prediction(lr_pipe["lr"])
+eli5.show_prediction(rf_pipe["rf"])
+
 
 # Bla... por que ELI5?
 
