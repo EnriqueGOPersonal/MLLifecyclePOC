@@ -610,9 +610,6 @@ companies_to_replace = more_20_emp_companies.company.unique()
 eda_df.loc[eda_df.company.isin(companies_to_replace) == False, "company"] = "Not Relevant"
 print("Number of unique values in company column: \n" + str(len(eda_df.company.unique())))
 
-# sns.catplot(x = "company", kind = "count", data = eda_df, hue = "defaulted_loan").set(ylim=(0, 200))
-
-
 # These are the 60 company names plus the "Not Relevant" value.
 
 # ### Exploring *current_job* column
@@ -631,6 +628,8 @@ job_df.sort_values("rows_count", ascending = False).head()
 
 job_df.describe()
 
+# We can notice that the job with less rows has 81 rows, meaning that leaving all the 639 jobs as they are might be viable.
+
 
 # ### Exploring *credit_card_provider* column
 # 
@@ -641,32 +640,33 @@ job_df.describe()
 # In[77]:
 
 
-job_df = eda_df.groupby("current_job", as_index = False).agg({"client_id": "count"})[["current_job", "client_id"]].rename(columns = {"client_id": "rows_count"})
-job_df.sort_values("rows_count", ascending = False)
+ccp_df = eda_df.groupby("credit_card_provider", as_index = False).agg({"client_id": "count"})[["credit_card_provider", "client_id"]].rename(columns = {"client_id": "rows_count"})
+ccp_df.sort_values("rows_count", ascending = False)
 
 
 # In[74]:
 
+ccp_df.describe()
 
-companies_x_employees = company_df["rows_count"].value_counts()
-companies_x_employees = companies_x_employees.reset_index().rename(columns = {"index": "num_employees", "rows_count": "num_companies"})
-more_20_emp_companies = companies_x_employees[companies_x_employees.num_employees > 20]
-print("By grouping all companies with 20 or more employees we are now left with: " + str(len(more_20_emp_companies)) + " companies")
+# As the credit card provider with less rows is 5714 and the one with more rows has 11572, the data is not imbalanced and we can leave the column values as they are.
 
+# ## Exploring numerical data
 
-# ### Plotting barplots for categorical columns
+# Let's analyze numerical column values by ploting histograms
 
-# In[75]:
+eda_df.describe()
 
+g = sns.PairGrid(eda_df)
 
-for i in range(1):
-    for column in cat_cols[0:1]:
-        sns.countplot(data = eda_df, x = column, hue = "defaulted_loan")
+g.map_diag(sns.distplot)
+g.map_offdiag(plt.scatter)
+
+# g.map(plt.hist, "number_of_children")
 
 
 # ## Plotting scatterplots between features
 
-# In[76]:
+# In[74]:
 
 
 sns.pairplot(data["train"]["personal"].merge(data["train"]["bank_data"][["client_id", "defaulted_loan"]], 
