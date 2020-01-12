@@ -712,11 +712,11 @@ for i in range(len(corr)):
 
 # In[74]:
 
-for col in num_cols[0:2]:
-    print(col)
-    g = sns.FacetGrid(eda_df, hue="defaulted_loan")
-    g.map(sns.distplot, col, kde = True)
-    g.add_legend()
+# for col in num_cols[0:2]:
+#     print(col)
+#     g = sns.FacetGrid(eda_df, hue="defaulted_loan")
+#     g.map(sns.distplot, col, kde = True)
+#     g.add_legend()
 
 g = sns.PairGrid(eda_df[num_cols[0:3]+["defaulted_loan"]], hue = "defaulted_loan")
 g.map_diag(sns.distplot)
