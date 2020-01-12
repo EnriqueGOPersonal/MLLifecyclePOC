@@ -693,14 +693,20 @@ sns.heatmap(corr,
             linewidths=.5, annot = False,
             cmap="RdBu_r", center = 0)
 
-# The columns with PCC greater than 0.3 are:
+# The columns with PCC greater than 0.8 (high colinearity) are:
 
 # In[74]:
 
+already_passed = [] 
 for i in range(len(corr)):
     for col in corr.columns:
-        if (corr.loc[corr.index[i], col] >= 0.6) & (corr.index[i] != col):
+        if (corr.loc[corr.index[i], col] >= 0.8) & (corr.index[i] != col) & (corr.index[i] not in already_passed):
             print("Column " + col + " and column " + str(corr.index[i]) + " have a PCC of: " + str(corr.loc[corr.index[i], col]))
+
+# Removing numerical columns:
+
+
+# After removing one of both we are left with the following numerical columns:
 
 # Plotting pairplots
 
