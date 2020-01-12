@@ -724,10 +724,10 @@ for col in num_cols:
 #     g.map(sns.distplot, col, kde = True)
 #     g.add_legend()
 
-g = sns.PairGrid(eda_df[num_cols[0:3]+["defaulted_loan"]], hue = "defaulted_loan")
-g.map_diag(sns.distplot)
+g = sns.PairGrid(eda_df[num_cols+["defaulted_loan"]], hue = "defaulted_loan")
+g.map_diag(sns.distplot, kde = True)
 # g.map_diag(sns.boxplot())
-g.map_offdiag(plt.scatter, s = 2, edgecolor="white")
+g.map_offdiag(plt.scatter, s = 2)
 g.add_legend()
 
 
