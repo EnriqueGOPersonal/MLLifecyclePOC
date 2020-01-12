@@ -679,24 +679,30 @@ eda_df[num_cols].describe()
 
 # ## Plotting pearson correlation matrix between features
 
-# Some numerical columns might have multicollinearity, so let's plot a heatmap of the pearson correlation coefficient between features to identify them,
+# Some numerical columns might have multicollinearity, so let's plot a heatmap of the pearson correlation coefficient (PCC) between features to identify them.
 
 # In[74]:
 
 # Calculate the correlation matrix
 corr = data["train"]["merged_train"].corr()
 
-# Plot the heatmap
-
-
 # plot the heatmap
 sns.heatmap(corr, 
             xticklabels=corr.columns,
             yticklabels=corr.columns,
-            linewidths=.5, annot = True,
+            linewidths=.5, annot = False,
             cmap="RdBu_r", center = 0)
 
+# The columns with PCC greater than 0.3 are:
 
+# In[74]:
+
+for i in range(len(corr)):
+    for col in corr.columns:
+        if (corr.loc[corr.index[i], col] >= 0.6) & (corr.index[i] != col):
+            print("Column " + col + " and column " + str(corr.index[i]) + " have a PCC of: " + str(corr.loc[corr.index[i], col]))
+
+# Plotting pairplots
 
 # In[74]:
 
@@ -749,6 +755,7 @@ x_train, y_train = sm.fit_sample(x_train, y_train)
 # Assign 80% data to train set 20% data to dev set
 
 # We can notice that our dataset's label to predict has imbalanced data because only a small fraction of observations are actually positives (the same is true if only a small fraction of observations were negatives).Recently, oversampling the minority class observations has become a common approach to improve the quality of predictive modeling. By oversampling, models are sometimes better able to learn patterns that differentiate classes. [2]
+
 # In[ ]:
 
 # ## Defining data wrangling pipeline steps
@@ -787,7 +794,7 @@ gd_sr = GridSearchCV(estimator = lr_pip,
                      n_jobs=-1)
 
 
-# ### Random Forest Model
+# ### 2) Random Forest Model
 
 # In[ ]:
 
@@ -809,6 +816,13 @@ gd_sr = GridSearchCV(estimator = rf_pipe,
                      cv=5,
                      n_jobs=-1)
 
+# ## Making predictions and comparing the models performance
+
+# Choosing a model of the goals of implementation. In this situation, the tradeoff between identifying more delinquent loans at the cost of misclassification can be analyzed with a specific tool called a roc curve.  When the model predicts a class label, a probability threshold is used to make the decision. This threshold is set by default at 50% so that observations with more than a 50% chance of membership belong to one class and vice-versa.
+
+# Roc curves allow us to see the impact of varying this voting threshold by plotting the true positive prediction rate against the false positive prediction rate for each threshold value between 0% and 100%.
+
+# The area under the ROC curve (AUC) quantifies the model’s ability to distinguish between delinquent and non-delinquent observations.  A completely useless model will have an AUC of .5 as the probability for each event is equal. A perfect model will have an AUC of 1 as it is able to perfectly predict each class.
 
 # # Error analysis
 # 
@@ -850,3 +864,4 @@ demo_output.to_csv('growth_ds_challenge_luis_garcia.csv')
 # 
 # [3] https://stats.stackexchange.com/questions/146907/principled-way-of-collapsing-categorical-variables-with-many-levels
 # 
+# [4] https://riskspan.com/news-insight-blog/hands-on-machine-learning-predicting-loan-delinquency/
