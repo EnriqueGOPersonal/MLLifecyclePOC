@@ -677,7 +677,7 @@ for col in num_cols:
 
 eda_df[num_cols].describe()
 
-# ## Plotting pearson correlation matrix between features
+# ### 1) Plotting pearson correlation matrix between features
 
 # Some numerical columns might have multicollinearity, so let's plot a heatmap of the pearson correlation coefficient (PCC) between features to identify them.
 
@@ -693,22 +693,28 @@ sns.heatmap(corr,
             linewidths=.5, annot = False,
             cmap="RdBu_r", center = 0)
 
-# The columns with PCC greater than 0.8 (high colinearity) are:
+# The columns with PCC greater than 0.9 (high colinearity) are:
 
 # In[74]:
 
 already_passed = [] 
 for i in range(len(corr)):
     for col in corr.columns:
-        if (corr.loc[corr.index[i], col] >= 0.8) & (corr.index[i] != col) & (corr.index[i] not in already_passed):
+        if (corr.loc[corr.index[i], col] >= 0.9) & (corr.index[i] != col) & (corr.index[i] not in already_passed):
             print("Column " + col + " and column " + str(corr.index[i]) + " have a PCC of: " + str(corr.loc[corr.index[i], col]))
 
-# Removing numerical columns:
+# We can combine or remove one of the highly colinear numerical columns, we will opt for the second:
+eda_df = eda_df.drop(["withdrawal_amount_sum", "deposit_amount_sum", "monthly_avg_w_amount", "monthly_avg_d_amount"], axis = 1)
 
+num_cols = [col for col in num_cols if col not in ["withdrawal_amount_sum", "deposit_amount_sum", "monthly_avg_w_amount", "monthly_avg_d_amount"]]
 
 # After removing one of both we are left with the following numerical columns:
 
-# Plotting pairplots
+# In[74]:
+for col in num_cols:
+    print("* " + col)
+
+### 2) Plotting pairplots
 
 # In[74]:
 
@@ -720,7 +726,8 @@ for i in range(len(corr)):
 
 g = sns.PairGrid(eda_df[num_cols[0:3]+["defaulted_loan"]], hue = "defaulted_loan")
 g.map_diag(sns.distplot)
-g.map_offdiag(plt.scatter, s = 2)
+# g.map_diag(sns.boxplot())
+g.map_offdiag(plt.scatter, s = 2, edgecolor="white")
 g.add_legend()
 
 
@@ -742,10 +749,9 @@ g.add_legend()
 # In[ ]:
 # Shuffle train set
 
-
 x, y = shuffle(data["train"]["merged_train"].drop(["defaulted_loan"], axis = 1), data["train"]["merged_train"]["defaulted_loan"])
 data["train"]["merged_train"].drop("client_id")
-data["train"]["merged_train"] =data["train"]["merged_train"].drop(["client_id"], axis = 1)
+data["train"]["merged_train"] = data["train"]["merged_train"].drop(["client_id"], axis = 1)
 x_train, x_dev, y_train, y_dev = train_test_split(x,
                                                   y,
                                                   test_size = 0.2)
