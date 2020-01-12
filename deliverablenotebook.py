@@ -124,12 +124,13 @@ import seaborn as sns
 from sklearn.compose import ColumnTransformer
 sns.set(style="ticks")
 import io
-import matplotlib as plt
+import matplotlib.pyplot as plt
 # Un comment the following lines and run to install not common libraries
 # !pip install eli5
+# !pip install imblearn
 import eli5
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
-from imblearn.over_sampling import SMOTE
+# from imblearn.over_sampling import SMOTE
 
 # # Importing data
 
@@ -138,10 +139,10 @@ from imblearn.over_sampling import SMOTE
 
 data = {
     'train': {
-        'personal': pd.read_csv('data/client_personal_train.csv'),
-        'job': pd.read_csv('data/client_job_train.csv'),
-        'bank_data': pd.read_csv('data/client_bank_data_train.csv'),
-        'transactional_data': pd.read_csv('data/client_transactional_data_train.csv')      
+        'personal': pd.read_csv(r'data/client_personal_train.csv'),
+        'job': pd.read_csv(r'data/client_job_train.csv'),
+        'bank_data': pd.read_csv(r'data/client_bank_data_train.csv'),
+        'transactional_data': pd.read_csv(r'data/client_transactional_data_train.csv')      
     },
     'test': {
         'personal': pd.read_csv('data/client_personal_test.csv'),
@@ -204,6 +205,12 @@ data['train']['bank_data'].head()
 # * Depending on quality of the information contained in the column _address_ , geographical data might be useful for future analysis.
 # * *credit_card_number*, *phone_number* and *email_domain* columns seem to have no useful information.
 
+# In[8]:
+
+
+data['train']['bank_data'].describe()
+
+
 # #### 4) Bank transactions datatable
 
 # In[8]:
@@ -215,6 +222,12 @@ data['train']['transactional_data'].head()
 # **Note**:
 # * 
 # * *transaction_id* column seem to have no useful information.
+
+# In[8]:
+
+
+data['train']['transactional_data'].describe()
+
 
 # ### 3 - **Checking Data types**
 # 
@@ -465,16 +478,17 @@ def feat_eng(df):
     df["first_transaction"] = df.apply(lambda x: max(x.withdrawal_date_min, x.deposit_date_min), axis = 1)
     df["last_transaction"] = df.apply(lambda x: min(x.withdrawal_date_max, x.deposit_date_max), axis = 1)
     df["transaction_days_range"] = df.apply(lambda x: (x.last_transaction - x.first_transaction).days, axis = 1)
-    df["first_transaction_month"] = df.apply(lambda x: min(x.withdrawal_date_min, x.deposit_date_min).month, axis = 1)
-    df["first_transaction_year"] = df.apply(lambda x: min(x.withdrawal_date_min, x.deposit_date_min).year, axis = 1)
+    df["transaction_days_range"] = df.apply(lambda x: max(x.transaction_days_range, 1), axis = 1)
+    df["first_transaction_month"] = df.apply(lambda x: str(min(x.withdrawal_date_min, x.deposit_date_min).month), axis = 1)
+    df["first_transaction_year"] = df.apply(lambda x: str(min(x.withdrawal_date_min, x.deposit_date_min).year), axis = 1)
     df["monthly_avg_withdrawals"] = df.withdrawal_num_transactions_count/(df.transaction_days_range.apply(lambda x: x/30))
     df["monthly_avg_deposits"] = df.deposit_num_transactions_count/(df.transaction_days_range.apply(lambda x: x/30))
     df["monthly_avg_w_amount"] = df.withdrawal_amount_sum/(df.transaction_days_range.apply(lambda x: x/30))
     df["monthly_avg_d_amount"] = df.deposit_amount_sum/(df.transaction_days_range.apply(lambda x: x/30))
-    df["first_cc_app_month"] =  df.first_credit_card_application_date.apply(lambda x: x.month)
-    df["first_cc_app_year"] :df.first_credit_card_application_date.apply(lambda x: x.year)
-    df["cc_expire_month"] = df.credit_card_expire.apply(lambda x: x.month)
-    df["cc_expire_year"] = df.credit_card_expire.apply(lambda x: x.year)
+    df["first_cc_app_month"] =  df.first_credit_card_application_date.apply(lambda x: str(x.month))
+    df["first_cc_app_year"] :df.first_credit_card_application_date.apply(lambda x: str(x.year))
+    df["cc_expire_month"] = df.credit_card_expire.apply(lambda x: str(x.month))
+    df["cc_expire_year"] = df.credit_card_expire.apply(lambda x: str(x.year))
     return df
 
 for d_set in ["train", "test"]:    
@@ -491,7 +505,7 @@ for d_set in ["train", "test"]:
 # * deposit_date_max
 # * first_credit_card_application_date
 # * last_credit_card_application_date
-# * creditcard_expire
+# * credit_card_expire
 
 # In[ ]:
 
@@ -499,13 +513,13 @@ for d_set in ["train", "test"]:
 columns_to_drop = ["first_transaction",
                    "last_transaction", 
                    "withdrawal_date_min", 
-"withdrawal_date_max",
-"deposit_date_min",
-"first_credit_card_application_date",
-"last_credit_card_application_date",
-"deposit_date_min", 
-"deposit_date_max", 
-"credit_card_expire"]
+                    "withdrawal_date_max",
+                    "deposit_date_min",
+                    "first_credit_card_application_date",
+                    "last_credit_card_application_date",
+                    "deposit_date_min", 
+                    "deposit_date_max", 
+                    "credit_card_expire"]
 
 data["train"]["merged_train"] = data["train"]["merged_train"].drop(columns_to_drop, axis = 1)
 data["test"]["merged_test"] = data["test"]["merged_test"].drop(columns_to_drop, axis = 1)
@@ -561,13 +575,14 @@ for x in data["train"]["merged_train"].columns:
 
 
 for col in cat_cols:
-    print(col)
-    print(len(eda_df[col].unique()))
+    if col != "client_id":
+        print("Column name: " + col)
+        print("Number of unique values: " + str(len(eda_df[col].unique())))
 
 
 # ### Exploring *company* column
 # 
-# Company column seems to not be a candidate for one-hot encoding without preprocessing, as it would generate 49178 columns.
+# Company column seems to not be a candidate for one-hot encoding without preprocessing, as it would generate 49178 columns and it is very unlikely that all of them have enough rows to generalize a pattern.
 # 
 # We can analyze the number of times a company appears in our training dataset to try to collapse categorical variables values into more relevant values (values for wich we may identify a clear pattern).
 # 
@@ -607,7 +622,7 @@ print("By grouping all companies with 20 or more employees we are now left with:
 
 companies_to_replace = more_20_emp_companies.company.unique()
 eda_df.loc[eda_df.company.isin(companies_to_replace) == False, "company"] = "Not Relevant"
-#data["train"]["merged_train"].loc[eda_df.company.isin(companies_to_replace) == False, "company"] = "Not Relevant"
+data["train"]["merged_train"].loc[eda_df.company.isin(companies_to_replace) == False, "company"] = "Not Relevant"
 print("Number of unique values in company column: \n" + str(len(eda_df.company.unique())))
 
 # These are the 60 company names plus the "Not Relevant" value.
@@ -652,50 +667,49 @@ ccp_df.describe()
 
 # ## Exploring numerical data
 
-# Let's analyze numerical column values by ploting histograms
-
-eda_df.describe()
-
-g = sns.PairGrid(eda_df)
-
-g.map_diag(sns.distplot)
-g.map_offdiag(plt.scatter)
-
-# g.map(plt.hist, "number_of_children")
-
-
-# ## Plotting scatterplots between features
+# Let's analyze numerical column values.
 
 # In[74]:
 
+print("We have " +  str(len(num_cols)) + " numerical columns in our dataset:")
+for col in num_cols:
+    print("* " + col)
 
-sns.pairplot(data["train"]["personal"].merge(data["train"]["bank_data"][["client_id", "defaulted_loan"]], 
-                                             on = "client_id", how = "left"), hue="defaulted_loan", diag_kind="kde", s = 1)
-
-
-# In[ ]:
-
-
-sns.pairplot(data["train"]["job"].merge(data["train"]["bank_data"][["client_id", "defaulted_loan"]], 
-                                             on = "client_id", how = "left"), hue="defaulted_loan", diag_kind="kde")
-
+eda_df[num_cols].describe()
 
 # ## Plotting pearson correlation matrix between features
 
-# In[ ]:
+# Some numerical columns might have multicollinearity, so let's plot a heatmap of the pearson correlation coefficient between features to identify them,
 
+# In[74]:
 
 # Calculate the correlation matrix
 corr = data["train"]["merged_train"].corr()
 
 # Plot the heatmap
 
+
 # plot the heatmap
 sns.heatmap(corr, 
-        xticklabels=corr.columns,
-        yticklabels=corr.columns,
-        linewidths=.5,
-       cmap="RdBu_r", center = 0)
+            xticklabels=corr.columns,
+            yticklabels=corr.columns,
+            linewidths=.5, annot = True,
+            cmap="RdBu_r", center = 0)
+
+
+
+# In[74]:
+
+for col in num_cols[0:2]:
+    print(col)
+    g = sns.FacetGrid(eda_df, hue="defaulted_loan")
+    g.map(sns.distplot, col, kde = True)
+    g.add_legend()
+
+g = sns.PairGrid(eda_df[num_cols[0:3]+["defaulted_loan"]], hue = "defaulted_loan")
+g.map_diag(sns.distplot)
+g.map_offdiag(plt.scatter, s = 2)
+g.add_legend()
 
 
 # # Feature extraction after Exploratory Data Analysis (EDA)
@@ -756,7 +770,7 @@ x_train, y_train = sm.fit_sample(x_train, y_train)
 
 parameters = {'C': [1.0, 1.1]}
 
-CV = GridSearchCV( LogisticRegression(), param_grid = parameters, scoring = 'recall', n_jobs= 1)
+CV = GridSearchCV( LogisticRegression(), param_grid = parameters, scoring = 'roc_auc', n_jobs= 1)
 CV.fit(x_train, y_train)
 
 print('Best score and parameter combination = ')
@@ -779,7 +793,7 @@ gd_sr = GridSearchCV(estimator = lr_pip,
 
 parameters = {'': []}
 
-CV = GridSearchCV(RandomForestClassifier(), parameters, scoring = 'recall', n_jobs= 1)
+CV = GridSearchCV(RandomForestClassifier(), parameters, scoring = 'roc_auc', n_jobs= 1)
 CV.fit(x_train, y_train)   
 
 print('Best score and parameter combination = ')
