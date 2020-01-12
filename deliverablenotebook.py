@@ -661,7 +661,7 @@ print("By grouping all companies with 20 or more employees we are now left with:
 
 companies_not_replace = more_20_emp_companies.company.unique()
 eda_df.loc[eda_df.company.isin(companies_not_replace) == False, "company"] = "Not Relevant"
-.
+
 data["train"]["merged_train"].loc[data["train"]["merged_train"].company.isin(companies_not_replace) == False, "company"] = "Not Relevant"
 data["test"]["merged_test"].loc[data["test"]["merged_test"].company.isin(companies_not_replace) == False, "company"] = "Not Relevant"
 
@@ -871,7 +871,7 @@ dwr_pipe = ColumnTransformer([("scaler", scaler, num_cols), ("ohe", ohe, cat_col
 # , ("ohe", ohe, cat_cols)], 
 
 dwr_model = dwr_pipe.fit(data["train"]["merged_train"])
-a = dwr_model.fit_transform(trainset)
+trans_trainset = dwr_model.fit_transform(trainset) # Transformed trainset
 
 # ## Redefining trainset and devset
 
@@ -881,12 +881,10 @@ a = dwr_model.fit_transform(trainset)
 # In[ ]:
 
 # Shuffle train set
-x, y = shuffle(data["train"]["merged_train"].drop(["defaulted_loan"], axis = 1), data["train"]["merged_train"]["defaulted_loan"])
-data["train"]["merged_train"] = data["train"]["merged_train"].drop(["client_id"], axis = 1)
+x, y = shuffle(trans_trainset.drop([label], axis = 1), trans_trainset[label])
 
 # Assign 80% data to train set 20% data to dev set
 x_train, x_dev, y_train, y_dev = train_test_split(x, y, test_size = 0.2)
-
 
 # ## Oversampling trainset
 
