@@ -179,7 +179,7 @@ data['train']['personal'].head()
 # * Although it is currently not possible, with the help of an hypothetical additional  "*common_names_dataset*" for female and male individuals, genre information can be extracted from _name_ column for future analysis.
 # * Depending on quality of the information contained in the column _address_ , geographical data might be useful for future analysis. For simplicity we won't do it in this notebook.
 # * *car_licence_plate*, *phone_number* and *email_domain* columns seem to have no useful information.
-
+# * *years_of_educaction_ minimum value is -3, which makes no sense. We will later handle this error in the data.
 # #### 2) Job datatable
 
 # In[6]:
@@ -335,6 +335,14 @@ data['train']['bank_data']['defaulted_loan'].value_counts()
 # 
 # Feature extraction is only one of a series of iterative trial and error steps in the machine learning cycle. This is only a first approach.
 # 
+# ## Replacing negative *years_of_education* values with 0
+
+# In[16]:
+
+data["train"]["personal"].loc[data["train"]["personal"].years_of_education < 0, "years_of_education"] = 0
+data["test"]["personal"].loc[data["test"]["personal"].years_of_education < 0, "years_of_education"] = 0
+
+ 
 # ## Dropping not useful columns from datasets
 # 
 # As mentioned on the Train Data Exploration section, we may remove the following unuseful feature columns from datasets:
@@ -651,11 +659,11 @@ print("By grouping all companies with 20 or more employees we are now left with:
 # In[70]:
 
 
-companies_to_replace = more_20_emp_companies.company.unique()
-eda_df.loc[eda_df.company.isin(companies_to_replace) == False, "company"] = "Not Relevant"
-
-data["train"]["merged_train"].loc[data["train"]["merged_train"].company.isin(companies_to_replace) == False, "company"] = "Not Relevant"
-data["test"]["merged_test"].loc[data["test"]["merged_test"].company.isin(companies_to_replace) == False, "company"] = "Not Relevant"
+companies_not_replace = more_20_emp_companies.company.unique()
+eda_df.loc[eda_df.company.isin(companies_not_replace) == False, "company"] = "Not Relevant"
+.
+data["train"]["merged_train"].loc[data["train"]["merged_train"].company.isin(companies_not_replace) == False, "company"] = "Not Relevant"
+data["test"]["merged_test"].loc[data["test"]["merged_test"].company.isin(companies_not_replace) == False, "company"] = "Not Relevant"
 
 
 print("Number of unique values in company column: \n" + str(len(eda_df.company.unique())))
@@ -759,6 +767,7 @@ g = sns.PairGrid(eda_df[num_cols[0:6] +["defaulted_loan"]], hue = "defaulted_loa
 g.map_diag(plt.hist)
 g.map_offdiag(plt.scatter, s = 2)
 g.add_legend()
+plt.show()
 
 # From the past plots we may further analyze, for example, the number_of_children vs salary scatterplot and the years_of_education vs salary scatterplots.
 
@@ -767,6 +776,7 @@ g.add_legend()
 alt_eda_df = eda_df.copy()
 alt_eda_df.number_of_children = alt_eda_df.number_of_children + np.random.randn(len(eda_df))/10  #Jittering number_of_children values 
 sns.scatterplot(data = alt_eda_df, x = "number_of_children", y = "salary", hue ="defaulted_loan",  alpha=1, s = 5)
+plt.show()
 
 # **Notes**
 # We can notice a tendency from people who defaulted loan to have more children combined with lesser salary
@@ -776,6 +786,7 @@ sns.scatterplot(data = alt_eda_df, x = "number_of_children", y = "salary", hue =
 alt_eda_df = eda_df.copy()
 alt_eda_df.years_of_education = alt_eda_df.years_of_education + np.random.randn(len(eda_df))/8  #Jittering years_of_education values
 sns.scatterplot(data = alt_eda_df, x = "years_of_education", y = "salary", hue ="defaulted_loan",  alpha= 1, s = 10)
+plt.show()
 
 # **Notes**
 # We can notice a tendency from people who defaulted loan to have less years of education combined with lesser salary
@@ -786,14 +797,15 @@ sns.scatterplot(data = alt_eda_df, x = "years_of_education", y = "salary", hue =
 # 
 # The goal of this section is to example the implementation of two features derived from EDA:
 # * salary_per_child : Salary per child (float32)
-# * salary_per_education_year : Salary per year of education (float32)
-#
+# * years_of_education_per_salaryr : Years of education divided by salary (float32). The goal of this metric is to measure the hypothetical "ROI" of every year o education.
+
 
 # In[ ]:
 
 def feat_eng2(df):
     df["salary_per_child"] = df.salary/df.number_of_children
-    df["salary_per_education_year"] = df.salary/df.years_of_education
+    df.loc[df.number_of_children == 0, "salary_per_child"] = df.loc[df.number_of_children == 0, "salary"]*1.20
+    df["years_of_education_per_salary"] = df.years_of_education/df.salary
     return df
 
 for dataset in ["train", "test"]:    
@@ -806,8 +818,32 @@ for dataset in ["train", "test"]:
 
 # ROC curves allow us to see the impact of varying this voting threshold by plotting the true positive prediction rate against the false positive prediction rate for each threshold value between 0% and 100%.
 
-# The area under the ROC curve (AUC) quantifies the model’s ability to distinguish between delinquent and non-delinquent observations.  A completely useless model will have an AUC of .5 as the probability for each event is equal. A perfect model will have an AUC of 1 as it is able to perfectly predict each class.
+# The area under the ROC curve (AUC) quantifies the model’s ability to distinguish between delinquent and non-delinquent observations. A completely useless model will have an AUC of .5 as the probability for each event is equal. A perfect model will have an AUC of 1 as it is able to perfectly predict each class.
 
+# We will use AUC to select the best model.
+
+# ## Generating pre-model train and test sets
+
+cat_cols = []
+bool_cols = []
+num_cols = []
+date_cols = []
+
+for x in data["train"]["merged_train"].columns:
+    if x != "client_id":
+        if data["train"]["merged_train"][x].dtypes in ["object"]:
+            cat_cols.append(x)
+        elif data["train"]["merged_train"][x].dtypes in ["bool"]:
+            bool_cols.append(x)
+        elif data["train"]["merged_train"][x].dtypes in ["int64", "float64"]:
+            num_cols.append(x)
+        else:
+            date_cols.append(x)
+
+features = cat_cols + bool_cols + num_cols
+label = "defaulted_loan"
+trainset = data["train"]["merged_train"][features]
+testset = data["test"]["merged_test"][[x for x in features if x != label]]
 
 # ## Defining data wrangling pipeline steps
 #
@@ -819,20 +855,26 @@ for dataset in ["train", "test"]:
 
 # In[ ]:
 
-scaler = ColumnTransformer([("ohe", StandardScaler(), num_cols)], remainder = "passthrough", sparse_threshold = 0)
+scaler = StandardScaler()
 
-# ### 2) Encoding categorical columns
-
-# In[ ]:
-
-ohe = ColumnTransformer([("ohe", OneHotEncoder(handle_unknown='ignore'), cat_cols)], remainder = "passthrough", sparse_threshold = 0)
-
+# ### 3) Onehot Encoder for categorical columns
 
 # In[ ]:
 
+ohe = OneHotEncoder(handle_unknown = 'ignore')
 
-# ## Defining train and dev sets
-# 
+# ## Transforming train and test data with defined wrangling pipeline steps
+
+# In[ ]:
+dwr_pipe = ColumnTransformer([("scaler", scaler, num_cols), ("ohe", ohe, cat_cols)],
+                             remainder = "passthrough", sparse_threshold = 0, n_jobs = -1)
+# , ("ohe", ohe, cat_cols)], 
+
+dwr_model = dwr_pipe.fit(data["train"]["merged_train"])
+a = dwr_model.fit_transform(trainset)
+
+# ## Redefining trainset and devset
+
 # It is necessary to train the model my measuring it's performance on not seen data (usually called dev set).
 # We will assign 80% of the original train set data to our newly defined train set and the rest of 20% data to the dev set.
 
@@ -845,17 +887,15 @@ data["train"]["merged_train"] = data["train"]["merged_train"].drop(["client_id"]
 # Assign 80% data to train set 20% data to dev set
 x_train, x_dev, y_train, y_dev = train_test_split(x, y, test_size = 0.2)
 
-# x_train = ohe.transform(x_train)
-# x_dev = ohe.transform(x_dev)
+
+# ## Oversampling trainset
 
 # We can notice that our dataset's label to predict has imbalanced data because only a small fraction of observations are actually positives (the same is true if only a small fraction of observations were negatives).Recently, oversampling the minority class observations has become a common approach to improve the quality of predictive modeling. 
 # By oversampling, models are sometimes better able to learn patterns that differentiate classes. [2]
 
-X_resampled, y_resampled = SMOTE().fit_resample(x_train, y_train)
-
-
 # In[ ]:
 
+x_train_res, y_train_res = SMOTE().fit_resample(x_train, y_train)
 
 
 # ## Fitting pipelines to the dataset
@@ -920,6 +960,7 @@ gd_sr = GridSearchCV(estimator = rf_pipe,
 # # ELI5
 
 # ELI5 is a Python package which helps to debug machine learning classifiers and explain their predictions.
+
 # Ideas of thy is explaining predictions are discussed in more depth in the paper 'Why Should I Trust You?: Explaining the Predictions of Any Classifier' by Marco Tulio Ribeiro, et. al
 
 # In[ ]:
@@ -947,7 +988,7 @@ demo_output.to_csv('growth_ds_challenge_luis_garcia.csv')
 
 # # Final notes
 
-# The ML process is a cicle, although there are many opportunities to improve the process described above, it is even more important to have a viable initial product in the shortest possible time.
+# The data science process is a cicle, although there are many opportunities for improvement, it is even more important to have a viable initial product in the shortest possible time.
 
 # # References:
 # 
