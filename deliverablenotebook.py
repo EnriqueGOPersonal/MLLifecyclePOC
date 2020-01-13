@@ -1,10 +1,10 @@
-#!/usr/bin/env python
+# !/usr/bin/env python
 # coding: utf-8
 
 # # Credijusto Data Scientist Challenge 💻💰🚀
-# 
+
 # ## Dataset description.
-# 
+
 # #### 1) Personal [data table]
 # - **client_id**
 #     - key to job table
@@ -21,7 +21,7 @@
 # - number_of_children
 # - years_of_education
 # - has_criminal_records
-# 
+
 # #### 2. Job [data table]
 # - **client_id**
 #     - key to personal table
@@ -35,7 +35,7 @@
 # - car_licence_plate
 # - years_in_current_job
 # - salary
-# 
+
 # #### 3. Bank [data table]
 # - **client_id**
 #     - key to personal table
@@ -54,7 +54,7 @@
 # - last_credit_card_application_date
 # - **defaulted_loan**
 #     - Variable to predit
-# 
+
 # #### 4. Transactional [data table]
 # - **transaction_id**
 # - **account_id**
@@ -67,11 +67,11 @@
 # - amount
 # - type
 # - date
-# 
+
 # ## Business question
-# 
+
 # #### Background
-# 
+
 # 1. **Only the training set bank data table has the column defaulted_loan** which has two different outcomes:
 #     - True
 #         - Client defaulted (did not pay credit).
@@ -82,30 +82,25 @@
 # 2. You need to make a predictive model to **make predictions of the feature defaulted_loan on the test dataset**.
 # 3. **The evaluation of this challenge relies only on the prediction scores on test dataset**.
 #     - Choose wisely the evaluation metric for this challenge.
-# 
+
 
 # # Problem definition
-# 
-# Lenders provide loans to borrowers in exchange for the promise of repayment with interest. That means the lender only makes profit (interest) if the borrower pays off the loan. However, if he/she doesn’t repay the loan, then the lender loses money.
-# 
-# Therefore the lending industry is based in the answers of two critical questions: 
-# 
-# 1) How risky is the borrower?
-# 
-# 2) Given the borrower’s risk, should we lend him/her? 
-# 
-# The answer to the first question determines the interest rate the borrower would have. Interest rate measures among other things (such as time value of money) the riskness of the borrower, i.e. the riskier the borrower, the higher the interest rate. With interest rate in mind, we can then determine if the borrower is eligible for the loan.
-# 
-# "Predicting Loan Repayment", Imad Dabbura https://towardsdatascience.com/predicting-loan-repayment-5df4e0023e92 [1]
-# 
-# As stated in the Business question, for our purposes we would only predict the answer of the question 1.
-# 
-# ## The importance of predicting right the borrower's riskness
-# 
-# bla bla...
-# 
 
-# # Set working environment
+# Lenders provide loans to borrowers in exchange for the promise of repayment with interest. That means the lender only makes profit (interest) if the borrower pays off the loan. However, if he/she doesn’t repay the loan, then the lender loses money.
+
+# Therefore the lending industry is based in the answers of two critical questions: 
+
+# 1) How risky is the borrower?
+
+# 2) Given the borrower’s risk, should we lend him/her? 
+
+# The answer to the first question determines the interest rate the borrower would have. Interest rate measures among other things (such as time value of money) the riskness of the borrower, i.e. the riskier the borrower, the higher the interest rate. With interest rate in mind, we can then determine if the borrower is eligible for the loan.
+
+# "Predicting Loan Repayment", Imad Dabbura https://towardsdatascience.com/predicting-loan-repayment-5df4e0023e92 [1]
+
+# As stated in the Business question, for our purposes we would only predict the answer of the question 1.
+
+# Set working environment
 
 # In[2]:
 
@@ -180,6 +175,7 @@ data['train']['personal'].head()
 # * Depending on quality of the information contained in the column _address_ , geographical data might be useful for future analysis. For simplicity we won't do it in this notebook.
 # * *car_licence_plate*, *phone_number* and *email_domain* columns seem to have no useful information.
 # * *years_of_educaction_ minimum value is -3, which makes no sense. We will later handle this error in the data.
+
 # #### 2) Job datatable
 
 # In[6]:
@@ -250,7 +246,7 @@ data['train']['transactional_data'].describe()
 #     * No missing values found in the train set.
 
 # ### 5 - **Checking number of repeated values in ID columns**
-# 
+
 # This is done to define what kind of merging to do later on the datasets and expect certain behavior.
 
 # In[11]:
@@ -278,12 +274,12 @@ for dataset in data["train"]:
 # - One client has exactly one job in the job dataset.
 # - One client has exactly one account in the bank data dataset.
 # - Some clients have no transactions in transactional dataset and some may have more than one.
-# 
+
 # **Note**:
-# 
+
 # In order to later use the dataset *transactional data* to make one single prediction per client, we have to group the data by client, engineering features from it.
-# 
-# 
+
+
 
 # ### 6 - **Label stats**
 # - **defaulted_loan**: if True, it means that the client defaulted the loan. If False, client paid the loan.
@@ -320,7 +316,7 @@ data['train']['bank_data']['defaulted_loan'].value_counts()
 
 # **Note**:
 # - No missing values found in the train set.
-# 
+
 # For simplicity, we will assume:
 # * Test set comes from the same distribution as train set (therefore the same distribution of dev set).
 # * Test set does not contain values not contained in the train set for categorical one-hot encoded features (as this would require to handle this exceptions by replacing those values, droping rows with those values or redefining the feature encoding).
@@ -328,13 +324,13 @@ data['train']['bank_data']['defaulted_loan'].value_counts()
 # # Data wrangling and feature extraction for Exploratory Data Analysis (EDA)
 
 # The goal of this section is to preprocess data to make EDA reveal clearer patterns more easily.
-# 
+
 # In this section we preprocess train and test data the same way to later be able to use the same model to make predictions on both.
-# 
+
 # **Note**:
-# 
+
 # Feature extraction is only one of a series of iterative trial and error steps in the machine learning cycle. This is only a first approach.
-# 
+
 # ## Replacing negative *years_of_education* values with 0
 
 # In[16]:
@@ -342,9 +338,9 @@ data['train']['bank_data']['defaulted_loan'].value_counts()
 data["train"]["personal"].loc[data["train"]["personal"].years_of_education < 0, "years_of_education"] = 0
 data["test"]["personal"].loc[data["test"]["personal"].years_of_education < 0, "years_of_education"] = 0
 
- 
+
 # ## Dropping not useful columns from datasets
-# 
+
 # As mentioned on the Train Data Exploration section, we may remove the following unuseful feature columns from datasets:
 # * name
 # * address
@@ -372,7 +368,7 @@ for dataset in data["test"]:
 
 
 # ## Converting date columns to datetime type
-# 
+
 # The following columns currently are of type "object", they should be of type "datetime":
 # * credit_card_expire (from bank_data dataset)
 # * first_credit_card_application_date (from bank_data dataset)
@@ -434,7 +430,7 @@ print(data["train"]["transactional_data_gr"].columns.values)
 # * mean and total sum of amounts
 # * mean duration (in minutes)
 # * max and min transaction dates
-# 
+
 # Showing the resulting grouped dataset:
 
 # In[21]:
@@ -470,9 +466,9 @@ data["train"]["merged_train"].head()
 
 
 # ## Further feature engineering
-# 
+
 # We may perform further feature engineering by defining the next columns:
-# 
+
 # * transaction_days_range : Range of days between first and last transaction (float32).
 # * first_transaction_month : Month of first transaction (str).
 # * first_transaction_year : Year of first transaction (str).
@@ -534,13 +530,8 @@ handle_cols = ["first_transaction",
 for d_set in ["train", "test"]:    
     data[d_set]["merged_"+d_set][handle_cols] = data[d_set]["merged_"+d_set][handle_cols].fillna(0)
 
-
-# In[ ]:
-
-
-
 # Now finally let's drop the following (not useful anymore) columns:
-# 
+
 # * first_transaction
 # * last_transaction
 # * withdrawal_date_min
@@ -588,7 +579,7 @@ data["train"]["merged_train"].dtypes
 # # Exploratory Data Analysis
 
 # ## Dividing features by data type
-# 
+
 # To generate better graphs, lets divide features into data into categorical, boolean and numerical data.
 
 # In[ ]:
@@ -626,13 +617,13 @@ for col in cat_cols:
 
 
 # ### Exploring *company* column
-# 
+
 # Company column seems to not be a candidate for one-hot encoding without preprocessing, as it would generate 49178 columns and it is very unlikely that all of them have enough rows to generalize a pattern.
-# 
+
 # We can analyze the number of times a company appears in our training dataset to try to collapse categorical variables values into more relevant values (values for wich we may identify a clear pattern).
-# 
+
 # **Note**
-# 
+
 # There seems to be great approaches for collapsing variables [as seen in this post](https://stats.stackexchange.com/questions/146907/principled-way-of-collapsing-categorical-variables-with-many-levels). For simplicity I will stick with the "replace values with frequencies less than x" approach.
 
 # In[81]:
@@ -653,9 +644,6 @@ company_df.describe()
 
 # In[79]:
 
-
-# companies_x_employees = company_df["rows_count"].value_counts()
-# companies_x_employees = companies_x_employees.reset_index().rename(columns = {"index": "num_employees", "rows_count": "num_companies"})
 more_20_emp_companies = company_df[company_df["rows_count"] > 20]
 print("By grouping all companies with 20 or more employees we are now left with: " + str(len(more_20_emp_companies.company.unique())) + " companies")
 
@@ -677,7 +665,7 @@ print("Number of unique values in company column: \n" + str(len(eda_df.company.u
 # These are the 60 company names plus the "Not Relevant" value.
 
 # ### Exploring *current_job* column
-# 
+
 # We can analyze the number of times a job appears in our training dataset to group the more relevant values (values for wich we may identify a clear pattern).
 
 # In[82]:
@@ -696,9 +684,9 @@ job_df.describe()
 
 
 # ### Exploring *credit_card_provider* column
-# 
+
 # *credit_card_provider* column seems to be a candidate for one-hot encoding without preprocessing, as it would generate 10 columns.
-# 
+
 # Let's explore the number of times each value appears in the trainset.
 
 # In[77]:
@@ -769,7 +757,7 @@ num_cols = [col for col in num_cols if col not in ["withdrawal_amount_sum", "dep
 for col in num_cols:
     print("* " + col)
 
-### 2) Plotting pairplots
+# ### 2) Plotting pairplots
 
 # For simplicity I will only plot the first 6 numerical columns.
 
@@ -804,9 +792,9 @@ plt.show()
 # We can notice a tendency from people who defaulted loan to have less years of education combined with lesser salary
 
 # # Feature extraction after Exploratory Data Analysis (EDA)
-# 
+
 # A well designed EDA may lead us to the creation of relevant features.
-# 
+
 # The goal of this section is to example the implementation of two features derived from EDA:
 # * salary_per_child : Salary per child (float32)
 # * years_of_education_per_salaryr : Years of education divided by salary (float32). The goal of this metric is to measure the hypothetical "ROI" of every year o education.
@@ -872,11 +860,11 @@ x, y = shuffle(trainset.drop([label], axis = 1), trainset[label])
 x_train, x_dev, y_train, y_dev = train_test_split(x, y, test_size = 0.2)
 
 # ## Defining data wrangling pipeline steps
-#
+
 # ### 1) Null values Imputing
-# 
+
 # Theres no need to do imputing as the trainset and testset do not contain missing values 
-# 
+
 # ### 2) Standard Scaler for numerical columns
 
 # In[ ]:
@@ -917,28 +905,37 @@ x_train, y_train = SMOTE().fit_resample(x_train, y_train)
 
 from sklearn.metrics import confusion_matrix, roc_auc_score
 
-parameters = {"penalty" : ['l1', 'l2']
-              , "C" : [0.01, 0.1, 1, 10]}
+def param_grid_l(params):
+    lr = LogisticRegression(penalty = params[0], C = params[1], max_iter = 1000)
+    lr_model = lr.fit(x_train, y_train)
+    lr_y_pred = lr_model.predict_proba(x_dev)
+    return (lr, roc_auc_score(y_dev, pd.DataFrame(lr_y_pred)[1]))
 
-lr = LogisticRegression()
-lr_model = lr.fit(x_train, y_train)
-lr_y_pred = lr_model.predict_proba(x_dev)
+import itertools
 
-roc_auc_score(y_dev, pd.DataFrame(lr_y_pred)[1])
+penalty = ['l2']
+C = [0.01, 0.1, 1, 10]
+param_iter = list(itertools.product(penalty, C))
+results =  [param_grid_l(params) for params in param_iter]
 
 # ### 2) Random Forest Model
 
 # In[ ]:
 
-parameters = {'n_estimators': [30, 40, 50],
-              'max_depth': [30,40,50]}
 
+def param_grid_rf(params):
+    rf = RandomForestClassifier(n_estimators = params[0], max_depth = params[1])
+    rf_model = rf.fit(x_train, y_train)
+    rf_y_pred = rf_model.predict_proba(x_dev)
+    return (rf, roc_auc_score(y_dev, pd.DataFrame(rf_y_pred)[1]), rf_y_pred)
 
-rf = RandomForestClassifier()
-rf_model = rf.fit(x_train, y_train)
-rf_y_pred = rf_model.predict_proba(x_dev)
+#List comprehension para meterle en un for los argumentos y empezar un proceso cada ves que itere el for.
 
-roc_auc_score(y_dev, pd.DataFrame(rf_y_pred)[1])
+n_estimators = [30, 40, 50]
+max_depth = [30,40,50]
+param_iter = list(itertools.product(n_estimators, max_depth))
+results =  [param_grid_rf(params) for params in param_iter]
+
 
 # ## Making predictions and comparing the models performance
 
