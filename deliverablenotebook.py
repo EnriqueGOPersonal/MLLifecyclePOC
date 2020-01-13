@@ -915,6 +915,8 @@ x_train, y_train = SMOTE().fit_resample(x_train, y_train)
 
 # In[ ]:
 
+from sklearn.metrics import confusion_matrix, roc_auc_score
+
 parameters = {"penalty" : ['l1', 'l2']
               , "C" : [0.01, 0.1, 1, 10]}
 
@@ -922,7 +924,7 @@ lr = LogisticRegression()
 lr_model = lr.fit(x_train, y_train)
 lr_y_pred = lr_model.predict_proba(x_dev)
 
-roc_auc_score(y_dev, rf_y_pred)
+roc_auc_score(y_dev, pd.DataFrame(lr_y_pred)[1])
 
 # ### 2) Random Forest Model
 
@@ -931,13 +933,12 @@ roc_auc_score(y_dev, rf_y_pred)
 parameters = {'n_estimators': [30, 40, 50],
               'max_depth': [30,40,50]}
 
-from sklearn.metrics import confusion_matrix, roc_auc_score
 
 rf = RandomForestClassifier()
 rf_model = rf.fit(x_train, y_train)
 rf_y_pred = rf_model.predict_proba(x_dev)
 
-roc_auc_score(y_dev, rf_y_pred)
+roc_auc_score(y_dev, pd.DataFrame(rf_y_pred)[1])
 
 # ## Making predictions and comparing the models performance
 
