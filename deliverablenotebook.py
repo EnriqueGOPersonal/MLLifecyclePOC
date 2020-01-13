@@ -845,6 +845,12 @@ label = "defaulted_loan"
 trainset = data["train"]["merged_train"][features]
 testset = data["test"]["merged_test"][[x for x in features if x != label]]
 
+# Shuffle train set
+x, y = shuffle(trainset.drop([label], axis = 1), trainset[label])
+
+# Assign 80% data to train set 20% data to dev set
+x_train, x_dev, y_train, y_dev = train_test_split(x, y, test_size = 0.2)
+
 # ## Defining data wrangling pipeline steps
 #
 # ### 1) Null values Imputing
@@ -870,8 +876,8 @@ dwr_pipe = ColumnTransformer([("scaler", scaler, num_cols), ("ohe", ohe, cat_col
                              remainder = "passthrough", sparse_threshold = 0, n_jobs = -1)
 # , ("ohe", ohe, cat_cols)], 
 
-dwr_model = dwr_pipe.fit(data["train"]["merged_train"])
-trans_trainset = dwr_model.fit_transform(trainset) # Transformed trainset
+dwr_model = dwr_pipe.fit(x_train.append(x_dev))
+x_train = dwr_model.fit_transform(x_train) # Transformed trainset
 
 # ## Redefining trainset and devset
 
@@ -880,11 +886,6 @@ trans_trainset = dwr_model.fit_transform(trainset) # Transformed trainset
 
 # In[ ]:
 
-# Shuffle train set
-x, y = shuffle(trans_trainset.drop([label], axis = 1), trans_trainset[label])
-
-# Assign 80% data to train set 20% data to dev set
-x_train, x_dev, y_train, y_dev = train_test_split(x, y, test_size = 0.2)
 
 # ## Oversampling trainset
 
@@ -892,8 +893,11 @@ x_train, x_dev, y_train, y_dev = train_test_split(x, y, test_size = 0.2)
 # By oversampling, models are sometimes better able to learn patterns that differentiate classes. [2]
 
 # In[ ]:
-
-x_train_res, y_train_res = SMOTE().fit_resample(x_train, y_train)
+le = LabelEncoder()
+y_train = le.fit_transform(y_train)
+trans_trainset = np.nan_to_num(x_train)
+y_train = np.nan_to_num(y_train)
+x_train, y_train = SMOTE().fit_resample(x_train, y_train)
 
 
 # ## Fitting pipelines to the dataset
@@ -901,20 +905,20 @@ x_train_res, y_train_res = SMOTE().fit_resample(x_train, y_train)
 # ### 1) Logistic Regression Model pipeline
 
 # In[ ]:
+from sklearn.metrics import mean_absolute_error as MAE
+parameters = {'max_iter': [1000, 2000]}
 
-parameters = {'C': [1.0, 1.1]}
-
-CV = GridSearchCV( LogisticRegression(), param_grid = parameters, scoring = 'roc_auc', n_jobs= 1)
-CV.fit(x_train, y_train)
+CV_lg = GridSearchCV( LogisticRegression(), param_grid = parameters, scoring = 'roc_auc', n_jobs= 1)
+CV_lg.fit(x_train, y_train)
 
 print('Best score and parameter combination = ')
-print(CV.best_score_)
-print(CV.best_params_)
+print(CV_lg.best_score_)
+print(CV_lg.best_params_)
 
-y_pred = CV.predict(x_test)
-print('MAE on validation set: %s' % (round(MAE(y_test, y_pred), 5)))
+y_pred = CV_lg.predict(x_dev)
+print('MAE on validation set: %s' % (round(MAE(y_dev, y_pred), 5)))
 
-gd_sr = GridSearchCV(estimator = lr_pipe,
+gd_sr = GridSearchCV(estimator = LogisticRegression(),
                      param_grid=parameters,
                      scoring='accuracy',
                      cv=5,
@@ -927,17 +931,17 @@ gd_sr = GridSearchCV(estimator = lr_pipe,
 
 parameters = {'': []}
 
-CV = GridSearchCV(RandomForestClassifier(), parameters, scoring = 'roc_auc', n_jobs= 1)
-CV.fit(x_train, y_train)   
+CV_rf = GridSearchCV(RandomForestClassifier(), parameters, scoring = 'roc_auc', n_jobs= 1)
+CV_rf.fit(x_train, y_train)   
 
 print('Best score and parameter combination = ')
-print(CV.best_score_)    
-print(CV.best_params_)
+print(CV_rf.best_score_)    
+print(CV_rf.best_params_)
 
-y_pred = CV.predict(x_test)
-print('MAE on validation set: %s' % (round(MAE(y_test, y_pred), 5)))
+y_pred = CV_rf.predict(x_dev)
+print('MAE on validation set: %s' % (round(MAE(y_dev, y_pred), 5)))
 
-gd_sr = GridSearchCV(estimator = rf_pipe,
+gd_sr = GridSearchCV(estimator = RandomForestClassifier(),
                      param_grid=parameters,
                      scoring='accuracy',
                      cv=5,
@@ -963,10 +967,10 @@ gd_sr = GridSearchCV(estimator = rf_pipe,
 
 # In[ ]:
 
-eli5.show_weights(lr_pipe["lr"])
-eli5.show_weights(rf_pipe["rf"])
-eli5.show_prediction(lr_pipe["lr"])
-eli5.show_prediction(rf_pipe["rf"])
+eli5.show_weights(CV_lg.best_estimator_)
+eli5.show_weights(CV_rf.best_estimator_)
+eli5.show_prediction(CV_lg.best_estimator_)
+eli5.show_prediction(CV_rf.best_estimator_)
 
 # Bla... 
 
