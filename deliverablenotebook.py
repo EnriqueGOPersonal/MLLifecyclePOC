@@ -916,11 +916,13 @@ x_train, y_train = SMOTE().fit_resample(x_train, y_train)
 # In[ ]:
 
 parameters = {"penalty" : ['l1', 'l2']
-              , "C" : [0.0001, 0.001, 0.01, 0.1, 1, 10]}
+              , "C" : [0.01, 0.1, 1, 10]}
 
 lr = LogisticRegression()
 lr_model = lr.fit(x_train, y_train)
-y_pred = lr_model.predict_proba(x_dev)
+lr_y_pred = lr_model.predict_proba(x_dev)
+
+roc_auc_score(y_dev, rf_y_pred)
 
 # ### 2) Random Forest Model
 
@@ -929,13 +931,13 @@ y_pred = lr_model.predict_proba(x_dev)
 parameters = {'n_estimators': [30, 40, 50],
               'max_depth': [30,40,50]}
 
-from sklearn.metrics import confusion_matrix, auc
+from sklearn.metrics import confusion_matrix, roc_auc_score
 
 rf = RandomForestClassifier()
 rf_model = rf.fit(x_train, y_train)
-y_pred = rf_model.predict_proba(x_dev)
+rf_y_pred = rf_model.predict_proba(x_dev)
 
-print('Best score and parameter combination = ')
+roc_auc_score(y_dev, rf_y_pred)
 
 # ## Making predictions and comparing the models performance
 
@@ -957,10 +959,8 @@ print('Confusion Matrix : \n' + str(confusion_matrix(y_dev,y_pred)))
 
 # In[ ]:
 
-eli5.show_weights(rf_model.best_estimator_)
-eli5.show_weights(CV_rf.best_estimator_)
-eli5.show_prediction(CV_lg.best_estimator_)
-eli5.show_prediction(CV_rf.best_estimator_)
+eli5.show_weights(rf_model)
+eli5.show_prediction(rf_model)
 
 
 # # CSV output
