@@ -439,7 +439,6 @@ print(data["train"]["transactional_data_gr"].columns.values)
 
 # In[21]:
 
-
 data["train"]["transactional_data_gr"].head()
 
 
@@ -524,7 +523,13 @@ handle_cols = ["first_transaction",
 "first_cc_app_month", 
 "first_cc_app_year", 
 "cc_expire_month", 
-"cc_expire_year"]
+"cc_expire_year",
+"withdrawal_num_transactions_count",
+"withdrawal_amount_mean",
+"withdrawal_duration_minutes_mean",
+"deposit_num_transactions_count",
+"deposit_amount_mean",
+"deposit_duration_minutes_mean"]
 
 for d_set in ["train", "test"]:    
     data[d_set]["merged_"+d_set][handle_cols] = data[d_set]["merged_"+d_set][handle_cols].fillna(0)
@@ -590,6 +595,7 @@ data["train"]["merged_train"].dtypes
 
 
 eda_df = data["train"]["merged_train"].reset_index(drop = True)
+
 cat_cols = []
 bool_cols = []
 num_cols = []
@@ -740,14 +746,20 @@ sns.heatmap(corr,
 
 # In[74]:
 
-already_passed = [] 
 for i in range(len(corr)):
     for col in corr.columns:
-        if (corr.loc[corr.index[i], col] >= 0.9) & (corr.index[i] != col) & (corr.index[i] not in already_passed):
+        if (corr.loc[corr.index[i], col] >= 0.9) & (corr.index[i] != col):
             print("Column " + col + " and column " + str(corr.index[i]) + " have a PCC of: " + str(corr.loc[corr.index[i], col]))
 
 # We can combine or remove one of the highly colinear numerical columns, we will opt for the second:
-eda_df = eda_df.drop(["withdrawal_amount_sum", "deposit_amount_sum", "monthly_avg_w_amount", "monthly_avg_d_amount"], axis = 1)
+
+# In[74]:
+
+columns_to_drop = ["withdrawal_amount_sum", "deposit_amount_sum", "monthly_avg_w_amount", "monthly_avg_d_amount"]
+            
+eda_df = eda_df.drop(columns_to_drop, axis = 1)
+data["train"]["merged_train"] = data["train"]["merged_train"].drop(columns_to_drop, axis = 1)
+data["test"]["merged_test"] = data["test"]["merged_test"].drop(columns_to_drop, axis = 1)
 
 num_cols = [col for col in num_cols if col not in ["withdrawal_amount_sum", "deposit_amount_sum", "monthly_avg_w_amount", "monthly_avg_d_amount"]]
 
@@ -845,6 +857,14 @@ label = "defaulted_loan"
 trainset = data["train"]["merged_train"][features]
 testset = data["test"]["merged_test"][[x for x in features if x != label]]
 
+
+# ## Redefining trainset and devset
+
+# It is necessary to train the model my measuring it's performance on not seen data (usually called dev set).
+# We will assign 80% of the original train set data to our newly defined train set and the rest of 20% data to the dev set.
+
+# In[ ]:
+
 # Shuffle train set
 x, y = shuffle(trainset.drop([label], axis = 1), trainset[label])
 
@@ -872,20 +892,13 @@ ohe = OneHotEncoder(handle_unknown = 'ignore')
 # ## Transforming train and test data with defined wrangling pipeline steps
 
 # In[ ]:
+
 dwr_pipe = ColumnTransformer([("scaler", scaler, num_cols), ("ohe", ohe, cat_cols)],
                              remainder = "passthrough", sparse_threshold = 0, n_jobs = -1)
-# , ("ohe", ohe, cat_cols)], 
 
-dwr_model = dwr_pipe.fit(x_train.append(x_dev))
-x_train = dwr_model.fit_transform(x_train) # Transformed trainset
-
-# ## Redefining trainset and devset
-
-# It is necessary to train the model my measuring it's performance on not seen data (usually called dev set).
-# We will assign 80% of the original train set data to our newly defined train set and the rest of 20% data to the dev set.
-
-# In[ ]:
-
+dwr_model = dwr_pipe.fit(x)
+x_train = dwr_model.transform(x_train) # Transformed trainset
+x_dev = dwr_model.transform(x_dev)
 
 # ## Oversampling trainset
 
@@ -893,63 +906,40 @@ x_train = dwr_model.fit_transform(x_train) # Transformed trainset
 # By oversampling, models are sometimes better able to learn patterns that differentiate classes. [2]
 
 # In[ ]:
-le = LabelEncoder()
-y_train = le.fit_transform(y_train)
-trans_trainset = np.nan_to_num(x_train)
-y_train = np.nan_to_num(y_train)
-x_train, y_train = SMOTE().fit_resample(x_train, y_train)
 
+x_train, y_train = SMOTE().fit_resample(x_train, y_train)
 
 # ## Fitting pipelines to the dataset
 
 # ### 1) Logistic Regression Model pipeline
 
 # In[ ]:
-from sklearn.metrics import mean_absolute_error as MAE
-parameters = {'max_iter': [1000, 2000]}
 
-CV_lg = GridSearchCV( LogisticRegression(), param_grid = parameters, scoring = 'roc_auc', n_jobs= 1)
-CV_lg.fit(x_train, y_train)
+parameters = {"penalty" : ['l1', 'l2']
+              , "C" : [0.0001, 0.001, 0.01, 0.1, 1, 10]}
 
-print('Best score and parameter combination = ')
-print(CV_lg.best_score_)
-print(CV_lg.best_params_)
-
-y_pred = CV_lg.predict(x_dev)
-print('MAE on validation set: %s' % (round(MAE(y_dev, y_pred), 5)))
-
-gd_sr = GridSearchCV(estimator = LogisticRegression(),
-                     param_grid=parameters,
-                     scoring='accuracy',
-                     cv=5,
-                     n_jobs=-1)
-
+lr = LogisticRegression()
+lr_model = lr.fit(x_train, y_train)
+y_pred = lr_model.predict_proba(x_dev)
 
 # ### 2) Random Forest Model
 
 # In[ ]:
 
-parameters = {'': []}
+parameters = {'n_estimators': [30, 40, 50],
+              'max_depth': [30,40,50]}
 
-CV_rf = GridSearchCV(RandomForestClassifier(), parameters, scoring = 'roc_auc', n_jobs= 1)
-CV_rf.fit(x_train, y_train)   
+from sklearn.metrics import confusion_matrix, auc
+
+rf = RandomForestClassifier()
+rf_model = rf.fit(x_train, y_train)
+y_pred = rf_model.predict_proba(x_dev)
 
 print('Best score and parameter combination = ')
-print(CV_rf.best_score_)    
-print(CV_rf.best_params_)
-
-y_pred = CV_rf.predict(x_dev)
-print('MAE on validation set: %s' % (round(MAE(y_dev, y_pred), 5)))
-
-gd_sr = GridSearchCV(estimator = RandomForestClassifier(),
-                     param_grid=parameters,
-                     scoring='accuracy',
-                     cv=5,
-                     n_jobs=-1)
 
 # ## Making predictions and comparing the models performance
 
-
+print('Confusion Matrix : \n' + str(confusion_matrix(y_dev,y_pred)))
 
 # # Error analysis
 # 
@@ -967,12 +957,11 @@ gd_sr = GridSearchCV(estimator = RandomForestClassifier(),
 
 # In[ ]:
 
-eli5.show_weights(CV_lg.best_estimator_)
+eli5.show_weights(rf_model.best_estimator_)
 eli5.show_weights(CV_rf.best_estimator_)
 eli5.show_prediction(CV_lg.best_estimator_)
 eli5.show_prediction(CV_rf.best_estimator_)
 
-# Bla... 
 
 # # CSV output
 
