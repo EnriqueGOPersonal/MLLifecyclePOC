@@ -52,7 +52,7 @@
 # - credit_score
 # - first_credit_card_application_date
 # - last_credit_card_application_date
-# - **defaulted_loan**
+# - **pr_loan**
 #     - Variable to predit
 
 # #### 4. Transactional [data table]
@@ -115,6 +115,7 @@ from sklearn.datasets import make_classification
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
+from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.compose import ColumnTransformer
@@ -843,7 +844,7 @@ for x in data["train"]["merged_train"].columns:
 features = cat_cols + bool_cols + num_cols
 label = "defaulted_loan"
 trainset = data["train"]["merged_train"][features]
-testset = data["test"]["merged_test"][[x for x in features if x != label]]
+testset = data["test"]["merged_test"][[features]
 
 
 # ## Redefining trainset and devset
@@ -903,20 +904,19 @@ x_train, y_train = SMOTE().fit_resample(x_train, y_train)
 
 # In[ ]:
 
-from sklearn.metrics import confusion_matrix, roc_auc_score
 
 def param_grid_l(params):
     lr = LogisticRegression(penalty = params[0], C = params[1], max_iter = 1000)
     lr_model = lr.fit(x_train, y_train)
     lr_y_pred = lr_model.predict_proba(x_dev)
-    return (lr, roc_auc_score(y_dev, pd.DataFrame(lr_y_pred)[1]))
+    return (lr, roc_auc_score(y_dev, pd.DataFrame(lr_y_pred)[1]), lr_y_pred, params)
 
 import itertools
 
 penalty = ['l2']
 C = [0.01, 0.1, 1, 10]
 param_iter = list(itertools.product(penalty, C))
-results =  [param_grid_l(params) for params in param_iter]
+lr_results =  [param_grid_l(params) for params in param_iter]
 
 # ### 2) Random Forest Model
 
@@ -927,22 +927,41 @@ def param_grid_rf(params):
     rf = RandomForestClassifier(n_estimators = params[0], max_depth = params[1])
     rf_model = rf.fit(x_train, y_train)
     rf_y_pred = rf_model.predict_proba(x_dev)
-    return (rf, roc_auc_score(y_dev, pd.DataFrame(rf_y_pred)[1]), rf_y_pred)
-
-#List comprehension para meterle en un for los argumentos y empezar un proceso cada ves que itere el for.
+    return (rf, roc_auc_score(y_dev, pd.DataFrame(rf_y_pred)[1]), rf_y_pred, params)
 
 n_estimators = [30, 40, 50]
 max_depth = [30,40,50]
 param_iter = list(itertools.product(n_estimators, max_depth))
-results =  [param_grid_rf(params) for params in param_iter]
+rf_results =  [param_grid_rf(params) for params in param_iter]
 
+# ## Ploting ROC curves for each model
 
-# ## Making predictions and comparing the models performance
+# In[ ]:
+from sklearn.metrics import recall_score
 
-print('Confusion Matrix : \n' + str(confusion_matrix(y_dev,y_pred)))
+recalls = []
+
+plt.title('Receiver Operating Characteristic')
+for model_results in lr_results + rf_results:
+    fpr, tpr, threshold = roc_curve(y_dev, pd.DataFrame(model_results[2])[1])
+    y
+    recalls.append(recall_score(y_dev, ))
+    plt.plot(fpr, tpr, label = 'AUC = %0.5f' % model_results[1])
+
+plt.legend(loc = 'lower right')
+plt.plot([0, 1], [0, 1],'r--')
+plt.xlim([0, 1])
+plt.ylim([0, 1])
+plt.ylabel('True Positive Rate')
+plt.xlabel('False Positive Rate')
+plt.show()
+
+# In[ ]:
+
+print('Confusion Matrix : \n' + str(confusion_matrix(y_dev, y_pred)))
 
 # # Error analysis
-# 
+
 # In this section we further explore the instances in which the model made a wrong prediction to try to find patters, generate model improval propositions and measure the time investment / reward ratio of each to take a decision of the next step to perform.
 
 # In[ ]:
@@ -957,13 +976,14 @@ print('Confusion Matrix : \n' + str(confusion_matrix(y_dev,y_pred)))
 
 # In[ ]:
 
-eli5.show_weights(rf_model)
-eli5.show_prediction(rf_model)
+eli5.show_weights(rf_results[0][0])
+eli5.show_prediction(rf_results[0][0])
 
 
 # # CSV output
 
 # In[ ]:
+
 
 
 demo_output.head()
@@ -980,13 +1000,13 @@ demo_output.to_csv('growth_ds_challenge_luis_garcia.csv')
 # The data science process is a cicle, although there are many opportunities for improvement, it is even more important to have a viable initial product in the shortest possible time.
 
 # # References:
-# 
+
 # [1] https://towardsdatascience.com/predicting-loan-repayment-5df4e0023e92
-# 
+
 # [2] https://beckernick.github.io/oversampling-modeling/
-# 
+
 # [3] https://stats.stackexchange.com/questions/146907/principled-way-of-collapsing-categorical-variables-with-many-levels
-# 
+
 # [4] https://riskspan.com/news-insight-blog/hands-on-machine-learning-predicting-loan-delinquency/
 
 # [5] https://arxiv.org/pdf/1602.04938.pdf
