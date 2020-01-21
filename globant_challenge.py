@@ -8,11 +8,9 @@ Created on Sun Jan 19 03:15:52 2020
 import pandas as pd
 from itertools import combinations , combinations_with_replacement, permutations, product
 import numpy as np
-
-# Get all combinations of [1, 2, 3] 
-# and length 2 
-
-# columns = ["res5", "res4", "res3", "res2", "res1"]
+from tqdm import tqdm
+tqdm.pandas(desc="my bar!")
+import multiprocessing as mp
 
 c = range(10)
 
@@ -20,14 +18,16 @@ c = range(10)
 # res.columns = columns
 
 lets = pd.DataFrame(list(permutations(c)), columns = ["Z", "R", "N", "V", "A", "E", "U", "T", "H", "S"])
+lets = lets[lets["S"] > 0]
+lets = lets[lets["U"] <= 8]
 
-lets["col1"] = lets.apply(lambda x: x.S*2 + x.H, axis = 1)
+lets["col1"] = lets.progress_apply(lambda x: x.S*2 + x.H, axis = 1)
 lets["N2"] = lets.col1 % 10
-lets["res1"] = lets.apply(lambda x: np.floor(x.col1 / 10), axis = 1)
+lets["res1"] = lets.progress_apply(lambda x: np.floor(x.col1 / 10), axis = 1)
 
 lets = lets[lets["N2"] == lets["N"]]
 
-lets["col2"] = lets.apply(lambda x: x.U*2 + x["T"] + x.res1, axis =1)
+lets["col2"] = lets..progress_apply(lambda x: x.U*2 + x["T"] + x.res1, axis =1)
 lets["R2"] = lets.col2 % 10
 lets["res2"] = lets.apply(lambda x: np.floor(x.col2 / 10), axis = 1)
 
