@@ -10,12 +10,9 @@ from itertools import combinations , combinations_with_replacement, permutations
 import numpy as np
 from tqdm import tqdm
 tqdm.pandas(desc="my bar!")
-import multiprocessing as mp
+# import multiprocessing as mp
 
 c = range(10)
-
-# res = pd.DataFrame(list(product(a,b,b,b,b)))
-# res.columns = columns
 
 lets = pd.DataFrame(list(permutations(c)), columns = ["Z", "R", "N", "V", "A", "E", "U", "T", "H", "S"])
 lets = lets[lets["S"] > 0]
@@ -27,9 +24,9 @@ lets["res1"] = lets.progress_apply(lambda x: np.floor(x.col1 / 10), axis = 1)
 
 lets = lets[lets["N2"] == lets["N"]]
 
-lets["col2"] = lets..progress_apply(lambda x: x.U*2 + x["T"] + x.res1, axis =1)
+lets["col2"] = lets.progress_apply(lambda x: x.U*2 + x["T"] + x.res1, axis =1)
 lets["R2"] = lets.col2 % 10
-lets["res2"] = lets.apply(lambda x: np.floor(x.col2 / 10), axis = 1)
+lets["res2"] = lets.progress_apply(lambda x: np.floor(x.col2 / 10), axis = 1)
 
 test = lets.head(100)
 
@@ -58,26 +55,32 @@ lets["S2"] = lets.col6 % 10
 
 lets = lets[lets["S2"] == lets["S"]]
 
-import multiprocessing
-import time
+lets = lets.astype(int)
+lets["EARTH"] = lets.apply(lambda x: int(str(x["E"]) + str(x["A"]) + str(x["R"]) + str(x["T"]) + str(x["H"])), axis = 1)
+lets["VENUS"] = lets.apply(lambda x: int(str(x["V"]) + str(x["E"]) + str(x["N"]) + str(x["U"]) + str(x["S"])), axis = 1)
+lets["URANUS"] = lets.apply(lambda x: int(str(x["U"]) + str(x["R"]) + str(x["A"]) +str(x["N"]) + str(x["U"]) + str(x["S"])), axis = 1)
+lets["SATURN"] = lets.apply(lambda x: int(str(x["S"]) + str(x["A"]) + str(x["T"]) + str(x["U"]) + str(x["R"]) + str(x["N"])), axis = 1)
 
-start = time.perf_counter()
-_name_ = "__main__"
+lets["sat"] = lets.EARTH + lets.VENUS +lets.URANUS
 
-def do_something():
-    print('Sleeping for 1 second')
-    time.sleep(1)
-    print('Done sleeping...')
+# import multiprocessing
+# import time
 
-if _name_ == '__main__':
-    p1 = multiprocessing.Process(target=do_something)
-    p2 = multiprocessing.Process(target=do_something)
-    p1.start()
-    p2.start()
+# start = time.perf_counter()
+# _name_ = "__main__"
 
-    p1.join()
-    p2.join()
+# def do_something():
+#     print('Sleeping for 1 second')
+#     time.sleep(1)
+#     print('Done sleeping...')
 
+# if _name_ == '__main__':
+#     p1 = multiprocessing.Process(target=do_something)
+#     p2 = multiprocessing.Process(target=do_something)
+#     p1.start()
+#     p2.start()
+#     p1.join()
+#     p2.join()
 
-    finish = time.perf_counter()
-    print(f'Finished in {round(finish-start,4)} seconds')
+# finish = time.perf_counter()
+# print(f'Finished in {round(finish-start,4)} seconds')
